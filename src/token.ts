@@ -1,12 +1,10 @@
 export type TokenType =
-  | "WHITESPACE"
-  | "IDENTIFIER"
   | "NUMBER"
+  | "IDENTIFIER"
   | "STRING"
   | "CHAR"
-  | "OPERATOR"
-  | "COMMENT"
-  | "KEYWORD";
+  | "KEYWORD"
+  | "OPERATOR";
 
 export interface Token {
   value: string;

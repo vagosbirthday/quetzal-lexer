@@ -15,106 +15,124 @@ const KEYWORDS = new Set([
   "false",
 ]);
 
-export class Lexer {
-  private input: string;
-  private pos = 0;
-  private line = 1;
-
-  constructor(input: string) {
-    this.input = input;
-  }
-
-  private peek(): string {
-  return this.input[this.pos] ?? "";
+function isAlpha(char: string) {
+  return /[a-zA-Z_]/.test(char);
 }
 
-  private advance(): string {
-    const char = this.input[this.pos++] ?? "";
-    if (char === "\n") this.line++;
-    return char;
-    }
-    
-  tokenize(): Token[] {
-    const tokens: Token[] = [];
+function isInt(char: string) {
+  return /[0-9]/.test(char);
+}
 
-    while (this.pos < this.input.length) {
-      let char = this.peek();
+function isWhitespace(char: string) {
+  return /\s/.test(char);
+}
 
-      if (/\s/.test(char)) {
-        let value = "";
-        while (/\s/.test(this.peek())) {
-          value += this.advance();
-        }
-        tokens.push({ value, type: "WHITESPACE", line: this.line });
-      }
+export function tokenize(input: string): Token[] {
+  const tokens: Token[] = [];
+  const src = input.split("");
+  let line = 1;
 
-      else if (char === "/" && this.input[this.pos + 1] === "/") {
-        let value = "";
-        while (this.peek() !== "\n" && this.pos < this.input.length) {
-          value += this.advance();
-        }
-        tokens.push({ value, type: "COMMENT", line: this.line });
-      }
-
-      else if (char === "/" && this.input[this.pos + 1] === "*") {
-        let value = this.advance() + this.advance();
-        while (
-          !(this.peek() === "*" && this.input[this.pos + 1] === "/")
-        ) {
-          value += this.advance();
-        }
-        value += this.advance() + this.advance();
-        tokens.push({ value, type: "COMMENT", line: this.line });
-      }
-
-      else if (char === '"') {
-        let value = this.advance();
-        while (this.peek() !== '"') {
-          value += this.advance();
-        }
-        value += this.advance();
-        tokens.push({ value, type: "STRING", line: this.line });
-      }
-
-      else if (char === "'") {
-        let value = this.advance();
-        while (this.peek() !== "'") {
-          value += this.advance();
-        }
-        value += this.advance();
-        tokens.push({ value, type: "CHAR", line: this.line });
-      }
-
-      else if (/[0-9]/.test(char)) {
-        let value = "";
-        while (/[0-9]/.test(this.peek())) {
-          value += this.advance();
-        }
-        tokens.push({ value, type: "NUMBER", line: this.line });
-      }
-
-      else if (/[a-zA-Z_]/.test(char)) {
-        let value = "";
-        while (/[a-zA-Z0-9_]/.test(this.peek())) {
-          value += this.advance();
-        }
-
-        const type: TokenType = KEYWORDS.has(value)
-          ? "KEYWORD"
-          : "IDENTIFIER";
-
-        tokens.push({ value, type, line: this.line });
-      }
-
-      else {
-        tokens.push({
-          value: this.advance(),
-          type: "OPERATOR",
-          line: this.line,
-        });
-      }
-    }
-
-    return tokens;
+  function push(value: string, type: TokenType) {
+    tokens.push({ value, type, line });
   }
+
+  while (src.length > 0) {
+    let char = src[0]!;
+
+    if (char === "\n") {
+      line++;
+      src.shift();
+    }
+
+    else if (isWhitespace(char)) {
+      src.shift();
+    }
+
+    // 🔹 COMMENTS //
+    else if (char === "/" && src[1]! === "/") {
+      while (src.length > 0 && src[0] !== "\n") {
+        src.shift();
+      }
+    }
+
+    else if (char === "/" && src[1]! === "*") {
+      src.shift(); src.shift();
+
+      while (src.length > 1) {
+      const a: string = src[0]!;
+      const b: string = src[1]!;
+
+      if (a === "*" && b === "/") break;
+
+      if (a === "\n") line++;
+      src.shift();
+    }
+
+      src.shift(); src.shift();
+    }
+
+    else if (char === '"') {
+      src.shift();
+      let value = "";
+
+      while (src.length > 0 && src[0] !== '"') {
+        value += src.shift()!;
+      }
+
+      src.shift();
+      push(value, "STRING");
+    }
+
+    else if (char === "'") {
+      src.shift();
+      let value = "";
+
+      while (src.length > 0 && src[0] !== "'") {
+        value += src.shift()!;
+      }
+
+      src.shift();
+      push(value, "CHAR");
+    }
+
+    else if (isInt(char)) {
+      let value = "";
+
+      while (src.length > 0 && isInt(src[0]!)) {
+        value += src.shift()!;
+      }
+
+      push(value, "NUMBER");
+    }
+
+    else if (isAlpha(char)) {
+      let value = "";
+
+      while (src.length > 0 && /[a-zA-Z0-9_]/.test(src[0]!)) {
+        value += src.shift()!;
+      }
+
+      if (KEYWORDS.has(value)) {
+        push(value, "KEYWORD");
+      } else {
+        push(value, "IDENTIFIER");
+      }
+    }
+
+    else if (
+      (char === "=" && src[1]! === "=") ||
+      (char === "!" && src[1]! === "=") ||
+      (char === "<" && src[1]! === "=") ||
+      (char === ">" && src[1]! === "=")
+    ) {
+      push(char + src[1]!, "OPERATOR");
+      src.shift(); src.shift();
+    }
+
+    else {
+      push(src.shift()!, "OPERATOR");
+    }
+  }
+
+  return tokens;
 }

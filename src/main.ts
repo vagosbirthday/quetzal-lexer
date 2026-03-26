@@ -1,5 +1,6 @@
 import * as fs from "fs";
-import { Lexer } from "./lexer";
+import { tokenize } from "./lexer";
+import { Token } from "./token";
 
 const file = process.argv[2];
 
@@ -10,9 +11,8 @@ if (!file) {
 
 const code = fs.readFileSync(file, "utf-8");
 
-const lexer = new Lexer(code);
-const tokens = lexer.tokenize();
+const tokens = tokenize(code);
 
-tokens.forEach((t) => {
+tokens.forEach((t: Token) => {
   console.log(`Token: ${t.value} | Line: ${t.line} | Type: ${t.type}`);
 });
