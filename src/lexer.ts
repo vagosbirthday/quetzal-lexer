@@ -1,19 +1,11 @@
 import { Token, TokenType } from "./token";
 
 const KEYWORDS = new Set([
-  "var",
-  "if",
-  "else",
-  "loop",
-  "break",
-  "return",
-  "inc",
-  "dec",
-  "and",
-  "not",
-  "true",
-  "false",
+  "var", "if", "elif", "else", "loop", "break", "return",
+  "inc", "dec", "and", "or", "not", "true", "false",
 ]);
+
+const stack: string[] = [];
 
 function isAlpha(char: string) {
   return /[a-zA-Z_]/.test(char);
@@ -48,25 +40,24 @@ export function tokenize(input: string): Token[] {
       src.shift();
     }
 
-    // 🔹 COMMENTS //
-    else if (char === "/" && src[1]! === "/") {
+    else if (char === "/" && src[1] === "/") {
       while (src.length > 0 && src[0] !== "\n") {
         src.shift();
       }
     }
 
-    else if (char === "/" && src[1]! === "*") {
+    else if (char === "/" && src[1] === "*") {
       src.shift(); src.shift();
 
       while (src.length > 1) {
-      const a: string = src[0]!;
-      const b: string = src[1]!;
+        const a: string = src[0]!;
+        const b: string = src[1]!;
 
-      if (a === "*" && b === "/") break;
+        if (a === "*" && b === "/") break;
+        if (a === "\n") line++;
 
-      if (a === "\n") line++;
-      src.shift();
-    }
+        src.shift();
+      }
 
       src.shift(); src.shift();
     }
@@ -95,8 +86,10 @@ export function tokenize(input: string): Token[] {
       push(value, "CHAR");
     }
 
-    else if (isInt(char)) {
+    else if (isInt(char) || (char === "-" && isInt(src[1] ?? ""))) {
       let value = "";
+
+      if (char === "-") value += src.shift()!;
 
       while (src.length > 0 && isInt(src[0]!)) {
         value += src.shift()!;
@@ -112,25 +105,51 @@ export function tokenize(input: string): Token[] {
         value += src.shift()!;
       }
 
-      if (KEYWORDS.has(value)) {
+      if (value === "true" || value === "false") {
+        push(value, "BOOLEAN");
+      }
+      else if (KEYWORDS.has(value)) {
         push(value, "KEYWORD");
-      } else {
+      }
+      else {
         push(value, "IDENTIFIER");
       }
     }
 
+    else if (char === "(" || char === "[" || char === "{") {
+      stack.push(char);
+      push(`${stack.length}${char}`, "OPEN");
+      src.shift();
+    }
+
+    else if (char === ")" || char === "]" || char === "}") {
+      push(`${stack.length}${char}`, "CLOSE");
+      stack.pop();
+      src.shift();
+    }
+
     else if (
-      (char === "=" && src[1]! === "=") ||
-      (char === "!" && src[1]! === "=") ||
-      (char === "<" && src[1]! === "=") ||
-      (char === ">" && src[1]! === "=")
+      (char === "=" && src[1] === "=") ||
+      (char === "!" && src[1] === "=") ||
+      (char === "<" && src[1] === "=") ||
+      (char === ">" && src[1] === "=")
     ) {
       push(char + src[1]!, "OPERATOR");
       src.shift(); src.shift();
     }
 
+    else if ("+-*/%<>=!".includes(char)) {
+      push(char, "OPERATOR");
+      src.shift();
+    }
+
+    else if (char === "," || char === ";") {
+      push(char, "SEPARATOR");
+      src.shift();
+    }
+
     else {
-      push(src.shift()!, "OPERATOR");
+      throw new Error(`Unknown character '${char}' at line ${line}`);
     }
   }
 

@@ -3,8 +3,12 @@ export type TokenType =
   | "IDENTIFIER"
   | "STRING"
   | "CHAR"
+  | "BOOLEAN"
   | "KEYWORD"
-  | "OPERATOR";
+  | "OPERATOR"
+  | "OPEN"
+  | "CLOSE"
+  | "SEPARATOR";
 
 export interface Token {
   value: string;
