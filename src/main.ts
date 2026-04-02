@@ -12,6 +12,7 @@ if (!file) {
 const code = fs.readFileSync(file, "utf-8");
 
 const tokens = tokenize(code);
+debugger;
 
 tokens.forEach((t: Token) => {
   console.log(`Token: ${t.value} | Line: ${t.line} | Type: ${t.type}`);
